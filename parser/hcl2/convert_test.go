@@ -45,30 +45,38 @@ resource "aws_elastic_beanstalk_environment" "example" {
 const outputa = `{
     "resource": {
         "aws_elastic_beanstalk_environment": {
-            "example": {
-                "application": "testing",
-                "dynamic": {
-                    "setting": {
-                        "content": {
-                            "cond": "${test3 \u003e 2 ? 1: 0}",
-                            "heredoc": "This is a heredoc template.\nIt references ${local.other.3}\n",
-                            "heredoc2": "\t\t\tAnother heredoc, that\n\t\t\tdoesn't remove indentation\n\t\t\t${local.other.3}\n\t\t\t%{if true ? false : true}\"gotcha\"\\n%{else}4%{endif}\n",
-                            "loop": "This has a for loop: %{for x in local.arr}x,%{endfor}",
-                            "name": "${setting.key}",
-                            "namespace": "aws:elasticbeanstalk:application:environment",
-                            "simple": "${4 - 2}",
-                            "value": "${setting.value}"
-                        },
-                        "for_each": "${data.consul_key_prefix.environment.var}"
-                    }
-                },
-                "name": "test_environment",
-                "setting": {
-                    "name": "MinSize",
-                    "namespace": "aws:autoscaling:asg",
-                    "value": "1"
+            "example": [
+                {
+                    "application": "testing",
+                    "dynamic": {
+                        "setting": [
+                            {
+                                "content": [
+                                    {
+                                        "cond": "${test3 \u003e 2 ? 1: 0}",
+                                        "heredoc": "This is a heredoc template.\nIt references ${local.other.3}\n",
+                                        "heredoc2": "\t\t\tAnother heredoc, that\n\t\t\tdoesn't remove indentation\n\t\t\t${local.other.3}\n\t\t\t%{if true ? false : true}\"gotcha\"\\n%{else}4%{endif}\n",
+                                        "loop": "This has a for loop: %{for x in local.arr}x,%{endfor}",
+                                        "name": "${setting.key}",
+                                        "namespace": "aws:elasticbeanstalk:application:environment",
+                                        "simple": "${4 - 2}",
+                                        "value": "${setting.value}"
+                                    }
+                                ],
+                                "for_each": "${data.consul_key_prefix.environment.var}"
+                            }
+                        ]
+                    },
+                    "name": "test_environment",
+                    "setting": [
+                        {
+                            "name": "MinSize",
+                            "namespace": "aws:autoscaling:asg",
+                            "value": "1"
+                        }
+                    ]
                 }
-            }
+            ]
         }
     }
 }`
@@ -82,10 +90,12 @@ provider "aws" {
 
 const outputb = `{
     "provider": {
-        "aws": {
-            "alias": "one",
-            "version": "=2.46.0"
-        }
+        "aws": [
+            {
+                "alias": "one",
+                "version": "=2.46.0"
+            }
+        ]
     }
 }`
 
@@ -115,6 +125,73 @@ const outputc = `{
     }
 }`
 
+const inputd = `resource "aws_lb" "example" {
+  name               = "example"
+  load_balancer_type = "network"
+
+  subnet_mapping {
+    subnet_id     = "sub1"
+    allocation_id = "eip1"
+  }
+}`
+
+const outputd = `{
+    "resource": {
+        "aws_lb": {
+            "example": [
+                {
+                    "load_balancer_type": "network",
+                    "name": "example",
+                    "subnet_mapping": [
+                        {
+                            "allocation_id": "eip1",
+                            "subnet_id": "sub1"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}`
+
+const inpute = `resource "aws_lb" "example" {
+  name               = "example"
+  load_balancer_type = "network"
+
+  subnet_mapping {
+    subnet_id     = "sub1"
+    allocation_id = "eip1"
+  }
+
+  subnet_mapping {
+    subnet_id     = "sub2"
+    allocation_id = "eip2"
+  }
+}`
+
+const outpute = `{
+    "resource": {
+        "aws_lb": {
+            "example": [
+                {
+                    "load_balancer_type": "network",
+                    "name": "example",
+                    "subnet_mapping": [
+                        {
+                            "allocation_id": "eip1",
+                            "subnet_id": "sub1"
+                        },
+                        {
+                            "allocation_id": "eip2",
+                            "subnet_id": "sub2"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}`
+
 func TestConversion(t *testing.T) {
 	testTable := map[string]struct {
 		input  string
@@ -123,6 +200,8 @@ func TestConversion(t *testing.T) {
 		"simple-resources": {input: inputa, output: outputa},
 		"single-provider":  {input: inputb, output: outputb},
 		"two-providers":    {input: inputc, output: outputc},
+		"one-block":        {input: inputd, output: outputd},
+		"two-blocks":       {input: inpute, output: outpute},
 	}
 
 	for name, tc := range testTable {
